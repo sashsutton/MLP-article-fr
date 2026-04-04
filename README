@@ -1,0 +1,3 @@
+Pour compiler sur votre machine : latex, puis bibtex, puis latex, puis latex... 
+
+C'est automatique sur Overleaf.

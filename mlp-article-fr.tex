@@ -1,0 +1,60 @@
+\documentclass[a4paper,french]{style-LaTeX} %% Ne pas modifier
+
+\title{De la propagation avant à la rétropropagation : une analyse des
+  mécanismes d'apprentissage dans les réseaux de neurones multicouches}
+\titlerunning{Propagation avant et rétropropagation dans les RNM}
+
+\author[1]{Sasha Sutton}
+\affil[1]{Aix-Marseille Université, France,
+\texttt{sasha.sutton@etu.univ-amu.fr}}
+
+\Copyright{Sasha Sutton}
+\keywords{réseau de neurones multicouches ; propagation avant ;
+  rétropropagation ; descente de gradient ; apprentissage automatique}
+
+\begin{document}
+
+\maketitle %% Ne pas modifier
+
+\begin{abstract}
+Cet article présente les fondements mathématiques et techniques des réseaux de neurones artificiels. À partir du modèle de neurone simple introduit par Rosenblatt, nous décrivons le perceptron et ses limites faces aux problèmes non linéairement séparables. Nous introduisons ensuite les réseaux de neurones multicouches, dont la capacité d'approximation universelle est établie théoriquement. L'algorithme de rétropropagation du gradient, mécanisme central de l'apprentissage, est présenté en détail. Enfin les principaux problèmes pratiques rencontrés lors de l'entraînement des réseaux de neurones sont discutés, notamment le surapprentissage et les méthodes de régularisation, ainsi que les solutions associés.
+\end{abstract}
+
+
+\section{Introduction}
+
+Les réseaux de neurones artificiels constituent aujourd'hui le socle
+technique de l'apprentissage automatique moderne. Leurs applications
+s'étendent de la reconnaissance d'images à la traduction automatique,
+en passant par la génération de texte. Comprendre les mécanismes qui
+permettent à ces systèmes d'apprendre est donc un enjeu fondamental,
+aussi bien théorique que pratique.
+
+Historiquement, les premières formalisations remontent aux années
+1940, avec le modèle de neurone formel proposé par McCulloch et Pitts
+\cite{McCullochPitts43}, puis au perceptron introduit par Rosenblatt
+en 1958 \cite{Rosenblatt58}. Ce modèle élémentaire, bien que
+prometteur, révèle rapidement ses limites : il est incapable de
+résoudre des problèmes non linéairement séparables, comme le montre
+l'exemple du XOR. Cette limitation a conduit au développement des
+réseaux de neurones multicouches, dont la capacité d'approximation
+est théoriquement illimitée, comme l'établit le théorème
+d'approximation universelle.
+
+Cet article présente les fondements mathématiques des réseaux de
+neurones artificiels, en suivant la question : comment un réseau de
+neurones apprend-il ? La Section 2 introduit le modèle de neurone
+formel et les fonctions d'activation. La Section 3 présente le
+perceptron simple et illustre ses limites à travers le problème XOR.
+La Section 4 décrit l'architecture des réseaux multicouches et la
+propagation avant. La Section 5 détaille l'algorithme de
+rétropropagation et les méthodes d'optimisation associées. La Section
+6 aborde les problèmes pratiques rencontrés lors de l'entraînement.
+La Section 7 conclut et ouvre des perspectives.
+
+
+%% Références : modifier le fichier sample-article.bib uniquement
+\bibliographystyle{plainurl} %% Ne pas modifier
+\bibliography{mlp-article} %% Ne pas modifier
+
+\end{document}
