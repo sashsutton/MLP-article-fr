@@ -9,3 +9,4 @@
 *.vtc
 texput.*
 pdflatex*.fls
+.DS_Store

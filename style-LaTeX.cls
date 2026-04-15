@@ -2,7 +2,7 @@
 %% generated with the docstrip utility.
 %% -----------------------------------------------------------------
 %% Author:     le-tex publishing services & Benjamin Monmege
-%% 
+%%
 %%       Copyright (C) 2010 Schloss Dagstuhl & 2016 Benjamin Monmege
 %% -----------------------------------------------------------------
 \NeedsTeXFormat{LaTeX2e}[2005/12/01]
@@ -115,7 +115,7 @@
 \EventLogo{}
 \def\EventEditors#1{\gdef\@EventEditors{#1}}
 \EventEditors{}
-\def\EventNoEds#1{\gdef\@EventNoEds{#1}\ifnum #1>1 \gdef\@Eds{Editors}\fi }    
+\def\EventNoEds#1{\gdef\@EventNoEds{#1}\ifnum #1>1 \gdef\@Eds{Editors}\fi }
 \EventNoEds{1}
 \gdef\@Eds{Editor}
 \def\EventLongTitle#1{\gdef\@EventLongTitle{#1}}
@@ -652,7 +652,7 @@
                        Digital Object Identifier\enskip}}
 \setcounter{page}{1}
 
-      
+
 \def\DOI#1{\gdef\@DOI{#1}}
 \DOI{}
 \endinput

@@ -1,60 +1,481 @@
-\documentclass[a4paper,french]{style-LaTeX} %% Ne pas modifier
+\documentclass[a4paper,french]{style-LaTeX}
+\usepackage{float}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
 
-\title{De la propagation avant à la rétropropagation : une analyse des
-  mécanismes d'apprentissage dans les réseaux de neurones multicouches}
+\title{De la propagation avant à la rétropropagation : une analyse des mécanismes d'apprentissage dans les réseaux de neurones multicouches}
 \titlerunning{Propagation avant et rétropropagation dans les RNM}
 
 \author[1]{Sasha Sutton}
-\affil[1]{Aix-Marseille Université, France,
-\texttt{sasha.sutton@etu.univ-amu.fr}}
+\affil[1]{Aix-Marseille Université, France, \texttt{sasha.sutton@etu.univ-amu.fr}}
 
 \Copyright{Sasha Sutton}
-\keywords{réseau de neurones multicouches ; propagation avant ;
-  rétropropagation ; descente de gradient ; apprentissage automatique}
+\keywords{réseau de neurones multicouches ; propagation avant ; rétropropagation ; descente de gradient ; apprentissage automatique}
 
 \begin{document}
 
-\maketitle %% Ne pas modifier
+\maketitle
 
 \begin{abstract}
-Cet article présente les fondements mathématiques et techniques des réseaux de neurones artificiels. À partir du modèle de neurone simple introduit par Rosenblatt, nous décrivons le perceptron et ses limites faces aux problèmes non linéairement séparables. Nous introduisons ensuite les réseaux de neurones multicouches, dont la capacité d'approximation universelle est établie théoriquement. L'algorithme de rétropropagation du gradient, mécanisme central de l'apprentissage, est présenté en détail. Enfin les principaux problèmes pratiques rencontrés lors de l'entraînement des réseaux de neurones sont discutés, notamment le surapprentissage et les méthodes de régularisation, ainsi que les solutions associés.
+Cet article présente les fondements mathématiques et techniques des réseaux de neurones artificiels. À partir du modèle de neurone simple introduit par Rosenblatt, nous décrivons le perceptron et ses limites face aux problèmes non linéairement séparables. Nous introduisons ensuite les réseaux de neurones multicouches, dont la capacité d'approximation universelle est établie théoriquement. L'algorithme de rétropropagation du gradient, mécanisme central de l'apprentissage, est présenté en détail. Enfin, les principaux problèmes pratiques rencontrés lors de l'entraînement des réseaux de neurones sont discutés, notamment le surapprentissage et les méthodes de régularisation, ainsi que les solutions associées.
 \end{abstract}
 
 
 \section{Introduction}
 
-Les réseaux de neurones artificiels constituent aujourd'hui le socle
-technique de l'apprentissage automatique moderne. Leurs applications
-s'étendent de la reconnaissance d'images à la traduction automatique,
-en passant par la génération de texte. Comprendre les mécanismes qui
-permettent à ces systèmes d'apprendre est donc un enjeu fondamental,
-aussi bien théorique que pratique.
+Les réseaux de neurones artificiels sont devenus un outil central de l'apprentissage automatique. Leurs applications, répertoriées notamment par Goodfellow et al. \cite{Goodfellow16}, couvrent des domaines variés tels que le diagnostic médical par imagerie, la conduite autonome ou la traduction automatique. Sur certaines tâches de classification visuelle, He et al. \cite{He15} montrent que leurs résultats dépassent même ceux des experts humains. Cette efficacité soulève une question sur les mécanismes mathématiques qui permettent à ces systèmes d'apprendre. Ces réseaux présentent aussi des faiblesses que leurs bons résultats ne font pas toujours apparaître. Moosavi-Dezfooli et al. \cite{MoosaviDezfooli17} montrent qu'il existe de petites perturbations imperceptibles à l'œil humain qui suffisent à tromper ces réseaux sur la quasi-totalité des images naturelles. Pour comprendre et corriger de telles faiblesses, il faut d'abord analyser précisément comment ces réseaux apprennent. C'est l'objectif de cet article.
 
-Historiquement, les premières formalisations remontent aux années
-1940, avec le modèle de neurone formel proposé par McCulloch et Pitts
-\cite{McCullochPitts43}, puis au perceptron introduit par Rosenblatt
-en 1958 \cite{Rosenblatt58}. Ce modèle élémentaire, bien que
-prometteur, révèle rapidement ses limites : il est incapable de
-résoudre des problèmes non linéairement séparables, comme le montre
-l'exemple du XOR. Cette limitation a conduit au développement des
-réseaux de neurones multicouches, dont la capacité d'approximation
-est théoriquement illimitée, comme l'établit le théorème
-d'approximation universelle.
+Historiquement, les premières formalisations remontent aux années 1940, avec le modèle de neurone formel proposé par McCulloch et Pitts \cite{McCullochPitts43}, puis au perceptron introduit par Rosenblatt en 1958 \cite{Rosenblatt58}. Ce modèle, bien que prometteur, a rapidement montré ses limites. Il ne peut pas résoudre les problèmes non linéairement séparables, comme le montre l'exemple du XOR. Cette limitation a conduit au développement des réseaux de neurones multicouches, dont la capacité d'approximation est théoriquement illimitée, comme l'établit le théorème d'approximation universelle.
 
-Cet article présente les fondements mathématiques des réseaux de
-neurones artificiels, en suivant la question : comment un réseau de
-neurones apprend-il ? La Section 2 introduit le modèle de neurone
-formel et les fonctions d'activation. La Section 3 présente le
-perceptron simple et illustre ses limites à travers le problème XOR.
-La Section 4 décrit l'architecture des réseaux multicouches et la
-propagation avant. La Section 5 détaille l'algorithme de
-rétropropagation et les méthodes d'optimisation associées. La Section
-6 aborde les problèmes pratiques rencontrés lors de l'entraînement.
-La Section 7 conclut et ouvre des perspectives.
+Cet article présente ces fondements en détail. Dans un premier temps, nous présentons le neurone formel, les fonctions d'activation, le perceptron et ses limites à travers le problème XOR. Ensuite, nous décrivons l'architecture des réseaux multicouches et la propagation avant, puis nous détaillons l'algorithme de rétropropagation et les méthodes d'optimisation associées. Nous abordons ensuite les problèmes pratiques rencontrés lors de l'entraînement et finalement nous concluons et ouvrons des perspectives.
+
+\section{Le perceptron : du neurone formel à ses limites}
+
+Un \emph{neurone formel} est l'unité de base d'un réseau de neurones. Il prend en entrée un vecteur $\mathbf{x} = (x_1, x_2, \ldots, x_n) \in \mathbb{R}^n$, associe à chaque entrée $x_i$ un poids $w_i \in \mathbb{R}$, et produit une sortie scalaire. Le calcul se déroule en deux étapes. On calcule d'abord une combinaison linéaire des entrées pondérées à laquelle on ajoute un biais $b \in \mathbb{R}$, puis on applique une fonction d'activation $\sigma$. La sortie $y$ du neurone est
+\begin{equation*}
+    y = \sigma\!\left(\sum_{i=1}^{n} w_i x_i + b\right) = \sigma(\mathbf{w}^\top \mathbf{x} + b)
+\end{equation*}
+où $\mathbf{w} = (w_1, \ldots, w_n)^\top \in \mathbb{R}^n$ est le vecteur des poids.
+
+\subsection*{Fonctions d'activation}
+
+La fonction d'activation permet au neurone de produire une sortie non linéaire. Sans elle, le neurone se réduirait à une simple combinaison linéaire de ses entrées, incapable de modéliser des relations complexes \cite{Goodfellow16}. Plusieurs fonctions d'activation sont couramment utilisées.
+\begin{itemize}
+\item La \emph{fonction sigmoïde} $\sigma : \mathbb{R} \to \,]0,1[$ est définie par
+\begin{equation*}
+    \sigma(z) = \frac{1}{1 + e^{-z}}
+\end{equation*}
+
+Elle compresse toute valeur réelle dans l'intervalle $]0,1[$, ce qui la rend interprétable comme une probabilité. Elle souffre cependant du problème de \emph{gradient évanescent} \cite{Goodfellow16}. Pour des valeurs de $z$ très grandes ou très petites, sa dérivée tend vers zéro et l'apprentissage ralentit.
+\item La \emph{tangente hyperbolique} $\tanh : \mathbb{R} \to \,]-1,1[$, définie par
+\begin{equation*}
+    \tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}}
+\end{equation*}
+est centrée en zéro, ce qui accélère la convergence, mais souffre du même problème \cite{Goodfellow16}.
+\item La fonction \emph{ReLU} (\emph{Rectified Linear Unit}), aujourd'hui la plus utilisée dans les architectures profondes, est définie par
+\begin{equation*}
+    \mathrm{ReLU}(z) = \max(0, z)
+\end{equation*}
+Sa simplicité et le fait que sa dérivée vaille $1$ pour $z > 0$ atténuent considérablement le problème de gradient évanescent. En contrepartie, les neurones pour lesquels $z \leq 0$ ont une dérivée nulle et cessent de contribuer à l'apprentissage, phénomène connu sous le nom de \emph{dying ReLU}. \\
+La Figure~\ref{fig:activation} illustre le comportement de ces trois fonctions.
+
+\end{itemize}
+\begin{figure}[H]
+\centering
+\begin{minipage}[t]{0.32\linewidth}
+\begin{tikzpicture}
+\begin{axis}[
+  width=\linewidth, height=3.5cm,
+  title={Sigmoïde},
+  xlabel={$z$},
+  xmin=-5, xmax=5, ymin=-0.1, ymax=1.1,
+  ytick={0, 0.5, 1},
+  samples=100,
+  axis lines=center,
+  tick label style={font=\scriptsize},
+  title style={font=\small},
+  xlabel style={font=\scriptsize},
+]
+\addplot[thick, blue] {1/(1+exp(-x))};
+\end{axis}
+\end{tikzpicture}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.32\linewidth}
+\begin{tikzpicture}
+\begin{axis}[
+  width=\linewidth, height=3.5cm,
+  title={Tangente hyperbolique},
+  xlabel={$z$},
+  xmin=-4, xmax=4, ymin=-1.2, ymax=1.2,
+  ytick={-1, 0, 1},
+  samples=100,
+  axis lines=center,
+  tick label style={font=\scriptsize},
+  title style={font=\small},
+  xlabel style={font=\scriptsize},
+]
+\addplot[thick, blue] {tanh(x)};
+\end{axis}
+\end{tikzpicture}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.32\linewidth}
+\begin{tikzpicture}
+\begin{axis}[
+  width=\linewidth, height=3.5cm,
+  title={ReLU},
+  xlabel={$z$},
+  xmin=-3, xmax=3, ymin=-0.5, ymax=3,
+  ytick={0, 1, 2},
+  samples=100,
+  axis lines=center,
+  tick label style={font=\scriptsize},
+  title style={font=\small},
+  xlabel style={font=\scriptsize},
+]
+\addplot[thick, blue] {max(0,x)};
+\end{axis}
+\end{tikzpicture}
+\end{minipage}
+\caption{Graphes des trois fonctions d'activation présentées.}
+\label{fig:activation}
+\end{figure}
+
+\subsection*{Le perceptron et sa règle d'apprentissage}
+
+Le \emph{perceptron}, introduit par Rosenblatt \cite{Rosenblatt58}, est le modèle le plus simple. Il s'agit d'un neurone formel unique dont la fonction d'activation est la fonction de seuil de Heaviside
+\begin{equation*}
+    \sigma(z) = \begin{cases} 1 & \text{si } z \geq 0 \\ 0 & \text{sinon} \end{cases}
+\end{equation*}
+Étant donné un ensemble d'apprentissage $\{(\mathbf{x}^{(k)}, y^{(k)})\}_{k=1}^{m}$, où $\mathbf{x}^{(k)} \in \mathbb{R}^n$ est un vecteur d'entrée et $y^{(k)} \in \{0,1\}$ est l'étiquette associée, le perceptron ajuste ses poids selon la règle suivante :
+\begin{equation*}
+    \mathbf{w} \leftarrow \mathbf{w} + \eta\,(y^{(k)} - \hat{y}^{(k)})\,\mathbf{x}^{(k)}
+\end{equation*}
+où $\eta > 0$ est le \emph{taux d'apprentissage} et $\hat{y}^{(k)}$ est la sortie prédite. Cette règle garantit la convergence lorsque les données sont linéairement séparables, comme l'établit le théorème de convergence du perceptron \cite{Rosenblatt58}.
+
+\subsection*{La limite du XOR}
+
+Le perceptron ne peut classer correctement que des données \emph{linéairement séparables}, c'est-à-dire séparables par un hyperplan de $\mathbb{R}^n$. Le problème du \emph{ou exclusif} (XOR) illustre parfaitement cette limite. La fonction XOR est définie sur $\{0,1\}^2$ par le Tableau~\ref{tab:xor}.
+\begin{table}[h]
+    \centering
+    \caption{Table de vérité du XOR.}
+    \label{tab:xor}
+    \begin{tabular}{cc|c}
+        $x_1$ & $x_2$ & $x_1 \oplus x_2$ \\
+        \hline
+        0 & 0 & 0 \\
+        0 & 1 & 1 \\
+        1 & 0 & 1 \\
+        1 & 1 & 0 \\
+    \end{tabular}
+\end{table}
+
+\textbf{Proposition.} \textit{Il n'existe pas de perceptron à deux entrées, de fonction d'activation la fonction de Heaviside, qui réalise le « ou exclusif ».}
+
+Nous sommes convaincus géométriquement qu'il n'existe pas de droite séparant les points de classe~0 des points de classe~1 dans le plan $(x_1, x_2)$, comme l'illustre la Figure~\ref{fig:xor}. Nous le prouvons à présent par un calcul formel.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+  \begin{axis}[
+    width=5.5cm, height=5.5cm,
+    xmin=-0.4, xmax=1.5, ymin=-0.4, ymax=1.5,
+    xlabel={$x_1$}, ylabel={$x_2$},
+    xtick={0,1}, ytick={0,1},
+    xticklabels={$0$,$1$}, yticklabels={$0$,$1$},
+    axis lines=center,
+    axis line style={->},
+    tick align=outside,
+    clip=false,
+  ]
+    \addplot[only marks, mark=o, mark size=5pt, line width=1.2pt]
+      coordinates {(0,0)(1,1)};
+    \addplot[only marks, mark=*, mark size=5pt]
+      coordinates {(1,0)(0,1)};
+    \node[font=\scriptsize, above right] at (axis cs:1,1)   {$y = 0$};
+    \node[font=\scriptsize, below left]  at (axis cs:0,0)   {$y = 0$};
+    \node[font=\scriptsize, below right] at (axis cs:1,0)   {$y = 1$};
+    \node[font=\scriptsize, above left]  at (axis cs:0,1)   {$y = 1$};
+  \end{axis}
+\end{tikzpicture}
+\caption{Les quatre points du XOR : aucune droite ne peut séparer les cercles vides ($y=0$) des points pleins ($y=1$).}
+\label{fig:xor}
+\end{figure}
+
+\textit{Démonstration.} Nous raisonnons par l'absurde en supposant qu'un tel perceptron existe. Nous cherchons une contradiction. Notons $a, b, c \in \mathbb{R}$ ses coefficients, de sorte que la sortie est $H(ax_1 + bx_2 + c)$ où $H$ est la fonction de Heaviside. Le perceptron produit~$1$ si et seulement si $ax_1 + bx_2 + c \geq 0$.
+\begin{itemize}
+  \item Pour $(x_1,x_2)=(1,0)$ (sortie XOR~$=1$), nous devons avoir $a(1)+b(0)+c \geq 0$, donc
+  \begin{equation}
+    a + c \geq 0. \label{eq:xor1}
+  \end{equation}
+  \item Pour $(x_1,x_2)=(0,1)$ (sortie XOR~$=1$), nous devons avoir $a(0)+b(1)+c \geq 0$, ce qui donne
+  \begin{equation}
+    b + c \geq 0. \label{eq:xor2}
+  \end{equation}
+  \item Pour $(x_1,x_2)=(0,0)$ (sortie XOR~$=0$), nous devons avoir $a(0)+b(0)+c < 0$, ce qui donne
+  \begin{equation}
+    c < 0. \label{eq:xor3}
+  \end{equation}
+  \item Pour $(x_1,x_2)=(1,1)$ (sortie XOR~$=0$), nous devons avoir $a(1)+b(1)+c < 0$, ce qui donne
+  \begin{equation}
+    a + b + c < 0. \label{eq:xor4}
+  \end{equation}
+\end{itemize}
+En additionnant \eqref{eq:xor1} et \eqref{eq:xor2}, nous obtenons $a+b+2c \geq 0$. Or, par \eqref{eq:xor3}, $c < 0$, donc $-c > 0$. En additionnant cette inégalité stricte à la précédente, nous obtenons $a+b+c > 0$, ce qui contredit \eqref{eq:xor4}. Il ne peut donc exister de tels réels $a, b, c$, ce qui achève la démonstration, d'après Bodin et Recher \cite{Exo7deepmath}.
+
+Cette impossibilité montre qu'un neurone seul ne suffit pas pour les problèmes non linéairement séparables. Pour aller plus loin, il faut empiler plusieurs couches de neurones. C'est précisément l'idée des réseaux de neurones multicouches, présentés dans la section suivante.
 
 
-%% Références : modifier le fichier sample-article.bib uniquement
-\bibliographystyle{plainurl} %% Ne pas modifier
-\bibliography{mlp-article} %% Ne pas modifier
+\section{Réseaux multicouches et propagation avant}
+
+Un \emph{réseau de neurones multicouches} (ou \emph{MLP}, de l'anglais \emph{Multi-Layer Perceptron}) généralise le perceptron en organisant des neurones en plusieurs couches successives. Dans cette section, nous décrivons l'architecture de ces réseaux, formalisons le calcul de leur sortie et rappelons le résultat théorique central qui justifie leur puissance expressive.
+
+\subsection*{Architecture}
+
+Un MLP est composé de trois types de couches. La \emph{couche d'entrée} reçoit le vecteur de données $\mathbf{x} \in \mathbb{R}^n$. Une ou plusieurs \emph{couches cachées} transforment successivement cette représentation. Enfin, la \emph{couche de sortie} produit la prédiction finale. On note $L$ le nombre total de couches (sans compter la couche d'entrée), et $n_l$ le nombre de neurones dans la couche $l$, pour $l = 1, \ldots, L$.
+
+La Figure~\ref{fig:mlp} illustre l'architecture d'un MLP à deux couches cachées, où chaque neurone d'une couche est connecté à tous les neurones de la couche suivante.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  neuron/.style={circle, draw, minimum size=0.7cm, inner sep=0pt},
+  layer label/.style={font=\small\itshape},
+  >=stealth
+]
+  \foreach \i in {1,2,3} {
+    \node[neuron, fill=blue!15] (I\i) at (0, {-(\i-2)*1.2}) {};
+  }
+  \foreach \i in {1,2,3,4} {
+    \node[neuron, fill=gray!20] (H1\i) at (2.5, {-(\i-2.5)*1.2}) {};
+  }
+  \foreach \i in {1,2,3,4} {
+    \node[neuron, fill=gray!20] (H2\i) at (5, {-(\i-2.5)*1.2}) {};
+  }
+  \foreach \i in {1,2} {
+    \node[neuron, fill=green!15] (O\i) at (7.5, {-(\i-1.5)*1.2}) {};
+  }
+  \foreach \i in {1,2,3} {
+    \foreach \j in {1,2,3,4} {
+      \draw[->, gray!60, thin] (I\i) -- (H1\j);
+    }
+  }
+  \foreach \i in {1,2,3,4} {
+    \foreach \j in {1,2,3,4} {
+      \draw[->, gray!60, thin] (H1\i) -- (H2\j);
+    }
+  }
+  \foreach \i in {1,2,3,4} {
+    \foreach \j in {1,2} {
+      \draw[->, gray!60, thin] (H2\i) -- (O\j);
+    }
+  }
+  \node[layer label] at (0, -2.4) {Entrée};
+  \node[layer label] at (2.5, -3.0) {Couche 1};
+  \node[layer label] at (5, -3.0) {Couche 2};
+  \node[layer label] at (7.5, -2.4) {Sortie};
+  \node[font=\scriptsize] at (0, 2.0) {$\mathbf{a}^{(0)}$};
+  \node[font=\scriptsize] at (2.5, 2.6) {$\mathbf{a}^{(1)}$};
+  \node[font=\scriptsize] at (5, 2.6) {$\mathbf{a}^{(2)}$};
+  \node[font=\scriptsize] at (7.5, 2.0) {$\mathbf{a}^{(3)}$};
+\end{tikzpicture}
+\caption{Architecture d'un MLP à deux couches cachées ($n_0=3$, $n_1=n_2=4$, $n_3=2$). Chaque neurone est connecté à tous les neurones de la couche suivante.}
+\label{fig:mlp}
+\end{figure}
+
+\subsection*{Notation matricielle}
+
+Pour la couche $l$, on note $W^{(l)} \in \mathbb{R}^{n_l \times n_{l-1}}$ la matrice des poids, $\mathbf{b}^{(l)} \in \mathbb{R}^{n_l}$ le vecteur des biais, $\sigma$ la fonction d'activation appliquée composante par composante, $\mathbf{z}^{(l)}$ la \emph{pré-activation} et $\mathbf{a}^{(l)}$ l'\emph{activation} de la couche $l$. Le calcul se décompose en deux étapes :
+\begin{align}
+  \mathbf{z}^{(l)} &= W^{(l)} \mathbf{a}^{(l-1)} + \mathbf{b}^{(l)}, \label{eq:preactivation} \\
+  \mathbf{a}^{(l)} &= \sigma\!\left(\mathbf{z}^{(l)}\right), \label{eq:activation}
+\end{align}
+avec $\mathbf{a}^{(0)} = \mathbf{x}$ pour la couche d'entrée. La sortie du réseau est $\mathbf{a}^{(L)}$.
+
+\subsection*{Propagation avant}
+
+La \emph{propagation avant} (\emph{forward pass}) consiste à calculer séquentiellement les équations~(\ref{eq:preactivation}) et~(\ref{eq:activation}) pour $l = 1, 2, \ldots, L$, en partant de l'entrée $\mathbf{a}^{(0)} = \mathbf{x}$ et en progressant vers la couche de sortie. À chaque couche $l$, chaque neurone reçoit toutes les activations de la couche précédente, calcule leur combinaison linéaire affine, puis applique la fonction d'activation $\sigma$. Le résultat final $\mathbf{a}^{(L)}$ constitue la prédiction du réseau pour l'entrée $\mathbf{x}$.
+
+\subsection*{Théorème d'approximation universelle}
+
+La puissance des MLP repose sur un résultat théorique fondamental. Cybenko \cite{Cybenko89} et Hornik \cite{Hornik91} établissent indépendamment, à la fin des années 1980, le résultat suivant \cite{Exo7deepmath}.
+
+\textbf{Théorème} (Approximation universelle)\textbf{.} \textit{Toute fonction continue $f : [a,b]^n \to \mathbb{R}$ peut être approchée d'aussi près que l'on veut par une fonction $F : [a,b]^n \to \mathbb{R}$ réalisée par un réseau de neurones à une couche cachée.}
+
+Précisons le sens de « approcher d'aussi près que l'on veut » : pour tout $\varepsilon > 0$, il existe un réseau $F$ tel que
+\begin{equation*}
+  \forall\, \mathbf{x} \in [a,b]^n, \quad |f(\mathbf{x}) - F(\mathbf{x})| < \varepsilon.
+\end{equation*}
+C'est l'\emph{approximation uniforme} des fonctions. Plusieurs remarques s'imposent. Les hypothèses sont essentielles : $f$ doit être continue et définie sur un compact $[a,b]^n$. Si l'une de ces conditions venait à manquer, l'énoncé serait faux. Cybenko \cite{Cybenko89} montre en particulier que toute fonction présentant une discontinuité résiste à l'approximation uniforme par un nombre fini de neurones, quelle que soit la finesse du réseau. Par ailleurs, ce théorème établit l'existence d'un tel réseau sans indiquer comment construire ses poids. C'est précisément l'objet de la section suivante.
+
+
+\section{Rétropropagation et descente de gradient}
+
+La propagation avant permet de calculer la sortie d'un réseau pour une entrée donnée, mais ne dit rien sur la manière d'ajuster les poids pour que cette sortie soit correcte. La \emph{rétropropagation du gradient}, proposée par Rumelhart et al. \cite{Rumelhart86}, est précisément la descente de gradient appliquée aux réseaux de neurones. Elle repose sur trois ingrédients. Une fonction de coût quantifie l'écart entre prédiction et cible. La descente de gradient minimise cette fonction par rapport à l'ensemble des poids. La règle de dérivation en chaîne rend ce calcul efficace couche par couche.
+
+\subsection*{Fonction de coût}
+
+Pour mesurer la qualité des prédictions du réseau, nous avons besoin d'une fonction qui attribue un score scalaire à chaque configuration de poids $(W, \mathbf{b})$. C'est la \emph{fonction de coût} $\mathcal{L}(W, \mathbf{b})$. Elle doit être nulle lorsque les prédictions sont parfaites, et d'autant plus grande que les erreurs sont importantes. Nous notons $\{(\mathbf{x}^{(i)}, \mathbf{y}^{(i)})\}_{i=1}^{N}$ le jeu d'apprentissage, où $\mathbf{x}^{(i)} \in \mathbb{R}^{n_0}$ est le vecteur d'entrée et $\mathbf{y}^{(i)} \in \mathbb{R}^{n_L}$ la sortie attendue pour le $i$-ème exemple. La sortie produite par le réseau pour cet exemple est $\mathbf{a}^{(L)}(\mathbf{x}^{(i)})$, c'est-à-dire l'activation de la couche de sortie $L$ obtenue par propagation avant.
+
+Pour chaque exemple $i$, on quantifie l'écart entre prédiction et cible par une \emph{erreur locale}, définie comme le carré de la norme euclidienne de la différence :
+\begin{equation*}
+  \mathcal{L}_i(W, \mathbf{b}) = \left\| \mathbf{a}^{(L)}(\mathbf{x}^{(i)}) - \mathbf{y}^{(i)} \right\|^2
+  = \sum_{k=1}^{n_L} \left( a_k^{(L)}(\mathbf{x}^{(i)}) - y_k^{(i)} \right)^2.
+\end{equation*}
+La \emph{fonction de coût} globale, notée $\mathcal{L}(W, \mathbf{b})$, est la moyenne de ces erreurs locales sur l'ensemble des $N$ exemples d'entraînement :
+\begin{equation}
+  \mathcal{L}(W, \mathbf{b}) = \frac{1}{N} \sum_{i=1}^{N} \mathcal{L}_i(W, \mathbf{b})
+  = \frac{1}{N} \sum_{i=1}^{N} \left\| \mathbf{a}^{(L)}(\mathbf{x}^{(i)}) - \mathbf{y}^{(i)} \right\|^2.
+  \label{eq:cout}
+\end{equation}
+Cette formule, connue sous le nom d'\emph{erreur quadratique moyenne} (MSE), vaut toujours $\mathcal{L} \geq 0$, et $\mathcal{L} = 0$ si et seulement si la prédiction est parfaite pour toutes les données \cite{Exo7deepmath}. Pour les problèmes de classification, Goodfellow et al. \cite{Goodfellow16} recommandent la \emph{cross-entropie}, qui pénalise davantage les prédictions erronées. Dans tous les cas, l'objectif de l'apprentissage est de trouver les poids $(W, \mathbf{b})$ qui minimisent $\mathcal{L}$.
+
+\subsection*{Le gradient de la fonction de coût}
+
+Pour minimiser $\mathcal{L}$, il faut connaître, en chaque point de l'espace des poids, la direction dans laquelle $\mathcal{L}$ décroît le plus. Cette information est fournie par le \emph{gradient}. Étant donné l'ensemble des poids $\mathbf{w} = (w_1, \ldots, w_p)$, le gradient de $\mathcal{L}$ est le vecteur des dérivées partielles :
+\begin{equation*}
+  \nabla_\mathbf{w} \mathcal{L} = \left(\frac{\partial \mathcal{L}}{\partial w_1}, \ldots, \frac{\partial \mathcal{L}}{\partial w_p}\right).
+\end{equation*}
+Il généralise la notion de dérivée aux fonctions de plusieurs variables. En dimension 1 (un seul poids $w$), il se réduit à la pente de la courbe $\mathcal{L}(w)$ : si $\frac{d\mathcal{L}}{dw} > 0$, la fonction croît en $w$ ; si $\frac{d\mathcal{L}}{dw} < 0$, elle décroît. En dimension 2 (deux poids $w_1, w_2$), le gradient est un vecteur du plan qui pointe perpendiculairement aux courbes de niveau dans la direction de la plus forte pente ascendante. Au voisinage d'un minimum, le gradient tend vers zéro, ce qui constitue le critère d'arrêt naturel de l'algorithme \cite{Exo7deepmath}. La Figure~\ref{fig:gradient} illustre ces deux situations.
+
+\begin{figure}[h]
+\centering
+\begin{minipage}[c]{0.50\linewidth}
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  view={-45}{32},
+  width=\linewidth, height=6.8cm,
+  xlabel={$w_1$}, ylabel={$w_2$}, zlabel={$\mathcal{L}$},
+  xmin=-2.1, xmax=2.1, ymin=-1.5, ymax=1.5, zmin=0, zmax=5.2,
+  xlabel style={font=\scriptsize, sloped like x axis},
+  ylabel style={font=\scriptsize, sloped like y axis},
+  zlabel style={font=\scriptsize},
+  tick label style={font=\tiny},
+  xtick={-2,0,2}, ytick={-1,0,1}, ztick={0,2,4},
+  title={(a) Surface $\mathcal{L}(w_1,w_2)=w_1^2+2w_2^2$},
+  title style={font=\small},
+  colormap={bluewhite}{color(0)=(white) color(1)=(blue!80)},
+]
+\addplot3[surf, shader=interp, opacity=0.72,
+  domain=-2:2, domain y=-1.4:1.4, samples=30, samples y=24]
+  {x^2 + 2*y^2};
+\addplot3[only marks, mark=*, mark size=2.5pt, black] coordinates {(0,0,0)};
+\node[font=\tiny, above right] at (axis cs:0,0,0.20) {$\mathbf{w}^*$};
+\addplot3[only marks, mark=*, mark size=4pt, red] coordinates {(1.5, 0.8, 3.53)};
+\node[red, font=\scriptsize, above] at (axis cs:1.5, 0.8, 3.85) {$\mathbf{w}_k$};
+\addplot3[only marks, mark=*, mark size=3pt, green!60!black] coordinates {(0.96, 0.224, 1.02)};
+\node[green!60!black, font=\scriptsize, right] at (axis cs:0.96, 0.224, 1.45) {$\mathbf{w}_{k+1}$};
+\addplot3[->, very thick, green!60!black, mark=none, smooth] coordinates {
+  (1.500, 0.800, 3.530)
+  (1.446, 0.742, 3.192)
+  (1.392, 0.685, 2.876)
+  (1.338, 0.627, 2.577)
+  (1.284, 0.570, 2.298)
+  (1.230, 0.512, 2.037)
+  (1.176, 0.454, 1.795)
+  (1.122, 0.397, 1.574)
+  (1.068, 0.339, 1.370)
+  (1.014, 0.282, 1.187)
+  (0.960, 0.224, 1.022)
+};
+\node[green!60!black, font=\scriptsize] at (axis cs:1.05, 0.62, 2.50) {$-\eta\nabla\!\mathcal{L}$};
+\end{axis}
+\end{tikzpicture}
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.46\linewidth}
+\centering
+\begin{tikzpicture}[scale=0.86]
+\draw[->, gray, thin] (-2.4,0) -- (2.55,0) node[right, font=\small] {$w_1$};
+\draw[->, gray, thin] (0,-1.55) -- (0,1.95) node[above, font=\small] {$w_2$};
+\draw[blue!20, thick] (0,0) ellipse (0.50 and 0.354);
+\draw[blue!33, thick] (0,0) ellipse (0.90 and 0.636);
+\draw[blue!46, thick] (0,0) ellipse (1.30 and 0.919);
+\draw[blue!60, thick] (0,0) ellipse (1.70 and 1.202);
+\draw[blue!74, thick] (0,0) ellipse (2.10 and 1.485);
+\fill[black] (0,0) circle (2.2pt);
+\node[font=\scriptsize, below left] at (-0.02, -0.04) {$\mathbf{w}^*$};
+\fill[red] (1.5, 0.8) circle (2.8pt);
+\node[red, font=\scriptsize, above] at (1.5, 0.82) {$\mathbf{w}_k$};
+\draw[->, thick, orange] (1.5, 0.8) -- (2.07, 1.408);
+\node[orange, font=\scriptsize, right] at (2.08, 1.41) {$\nabla\!\mathcal{L}$};
+\draw[->, thick, green!60!black, dashed] (1.5, 0.8) -- (0.96, 0.224);
+\fill[green!60!black] (0.96, 0.224) circle (2.2pt);
+\node[green!60!black, font=\scriptsize, below] at (0.96, 0.20) {$\mathbf{w}_{k+1}$};
+\node[green!60!black, font=\scriptsize, left] at (1.22, 0.51) {$-\eta\nabla\!\mathcal{L}$};
+\node[font=\small] at (0, -1.80) {(b) Courbes de niveau};
+\end{tikzpicture}
+\end{minipage}
+\caption{Illustration de la descente de gradient pour $\mathcal{L}(w_1,w_2)=w_1^2+2w_2^2$. (a)~Vue en surface~3D : la fonction forme un bol ; le pas $-\eta\nabla\mathcal{L}$ (flèche verte) déplace $\mathbf{w}_k$ vers le fond $\mathbf{w}^*$. (b)~Vue de dessus (courbes de niveau) : le gradient (orange) pointe perpendiculairement aux ellipses dans la direction de plus forte montée ; son opposé ramène vers le minimum.}
+\label{fig:gradient}
+\end{figure}
+
+\subsection*{Descente de gradient}
+
+L'intuition de la descente de gradient est celle d'une goutte d'eau sur une colline qui suit la pente et s'arrête dans un creux \cite{Exo7deepmath}. Pour formaliser cela, on représente l'ensemble des poids du réseau, c'est-à-dire toutes les matrices $W^{(l)}$ et tous les biais $\mathbf{b}^{(l)}$ empilés, par un seul vecteur $\mathbf{w}_k$, où $k = 0, 1, 2, \ldots$ est un \emph{compteur d'itérations} sans lien avec les indices de couches. On part d'un point initial $\mathbf{w}_0$ tiré au hasard, puis on itère la mise à jour
+\begin{equation}
+  \mathbf{w}_{k+1} = \mathbf{w}_k - \eta\, \nabla_{\mathbf{w}} \mathcal{L}(\mathbf{w}_k),
+  \label{eq:gdescent}
+\end{equation}
+où $\eta > 0$ est le \emph{taux d'apprentissage}. Le signe moins traduit le déplacement dans la direction de plus forte \emph{diminution} de $\mathcal{L}$, car le gradient pointe vers la montée et son opposé vers la descente. Si $\eta$ est trop grand, l'algorithme oscille autour du minimum sans converger ; s'il est trop petit, la convergence devient très lente \cite{Exo7deepmath}.
+
+\subsection*{Rétropropagation}
+
+Pour appliquer la règle~(\ref{eq:gdescent}), il faut calculer concrètement $\nabla_{\mathbf{w}} \mathcal{L}$, c'est-à-dire les gradients de $\mathcal{L}$ par rapport aux poids de \emph{chaque} couche. La \emph{rétropropagation} \cite{Rumelhart86} y parvient en appliquant la règle de dérivation en chaîne couche par couche, en remontant de la sortie vers l'entrée. On définit pour chaque couche $l$ le vecteur d'\emph{erreur rétropropagée}
+\begin{equation}
+  \boldsymbol{\delta}^{(l)} = \nabla_{\mathbf{z}^{(l)}} \mathcal{L},
+  \label{eq:delta}
+\end{equation}
+qui mesure la sensibilité de $\mathcal{L}$ aux pré-activations de la couche $l$. À la couche de sortie, la règle de dérivation composée appliquée à la MSE donne directement
+\begin{equation*}
+  \boldsymbol{\delta}^{(L)} = 2\bigl(\mathbf{a}^{(L)} - \mathbf{y}\bigr) \odot \sigma'\!\left(\mathbf{z}^{(L)}\right),
+\end{equation*}
+où $\odot$ désigne le \emph{produit de Hadamard}, c'est-à-dire le produit terme à terme défini par $(\mathbf{u} \odot \mathbf{v})_j = u_j v_j$. Ce produit apparaît naturellement car la règle de la chaîne combine deux vecteurs, le gradient de $\mathcal{L}$ par rapport aux activations et la dérivée de l'activation par rapport aux pré-activations, que l'on ne peut ni additionner ni multiplier matriciellement. On remonte ensuite vers les couches précédentes grâce à la relation de récurrence
+\begin{equation}
+  \boldsymbol{\delta}^{(l)} = \left( \left(W^{(l+1)}\right)^\top \boldsymbol{\delta}^{(l+1)} \right) \odot \sigma'\!\left(\mathbf{z}^{(l)}\right),
+  \label{eq:backprop}
+\end{equation}
+qui exprime que l'erreur de la couche $l$ est obtenue en rétropropageant l'erreur de la couche $l+1$ via les poids $W^{(l+1)}$, puis en la modulant neurone par neurone par la pente de l'activation locale \cite{Goodfellow16}.
+
+\subsection*{Mise à jour des poids}
+
+Une fois les $\boldsymbol{\delta}^{(l)}$ calculés pour toutes les couches ($l = L, L-1, \ldots, 1$), la règle de dérivation en chaîne fournit les gradients couche par couche.
+\begin{align}
+  \nabla_{W^{(l)}} \mathcal{L} &= \boldsymbol{\delta}^{(l)} \left(\mathbf{a}^{(l-1)}\right)^\top, \\
+  \nabla_{\mathbf{b}^{(l)}} \mathcal{L} &= \boldsymbol{\delta}^{(l)}.
+\end{align}
+La règle abstraite~(\ref{eq:gdescent}) se traduit alors, pour chaque couche $l$, par les mises à jour
+\begin{equation}
+  W^{(l)} \leftarrow W^{(l)} - \eta\, \boldsymbol{\delta}^{(l)} \left(\mathbf{a}^{(l-1)}\right)^\top, \qquad
+  \mathbf{b}^{(l)} \leftarrow \mathbf{b}^{(l)} - \eta\, \boldsymbol{\delta}^{(l)}.
+  \label{eq:update}
+\end{equation}
+L'algorithme complet alterne donc une propagation avant qui calcule tous les $\mathbf{z}^{(l)}$ et $\mathbf{a}^{(l)}$, une rétropropagation qui calcule les $\boldsymbol{\delta}^{(l)}$ de $l = L$ jusqu'à $l = 1$, puis la mise à jour simultanée de tous les poids et biais du réseau.
+
+\subsection*{Variantes de la descente de gradient}
+
+La fonction de coût~(\ref{eq:cout}) est une somme de $N$ erreurs locales $\mathcal{L}_i$. La descente de gradient \emph{batch} calcule le gradient exact $\nabla\mathcal{L} = \frac{1}{N}\sum_i \nabla\mathcal{L}_i$ en utilisant toutes les données à chaque itération, ce qui devient trop coûteux pour de grands $N$. La \emph{descente de gradient stochastique} (SGD) contourne ce problème en approximant le gradient par celui d'une seule erreur locale $\nabla\mathcal{L}_i$ à chaque itération, ce qui réduit fortement le coût de calcul mais introduit du bruit \cite{Exo7deepmath}. La variante \emph{mini-batch} trouve un équilibre en divisant les données en lots de taille $K$ et en effectuant une mise à jour par lot. Un passage complet sur l'ensemble des données constitue une \emph{époque} et plusieurs époques sont en général nécessaires pour converger. L'optimiseur \emph{Adam}, proposé par Kingma et Ba \cite{Kingma14}, va encore plus loin en adaptant le taux d'apprentissage séparément pour chaque poids, ce qui accélère la convergence et réduit les oscillations.
+
+Ces avancées algorithmiques ne garantissent cependant pas un entraînement sans difficulté : plusieurs problèmes pratiques surgissent lors de la mise en œuvre, que nous examinons dans la section suivante.
+
+
+\section{Problèmes pratiques et solutions}
+
+La théorie garantit qu'un bon réseau existe, mais l'entraînement en pratique soulève plusieurs difficultés. Nous présentons ici les problèmes les plus courants et les solutions généralement utilisées.
+
+\subsection*{Surapprentissage et régularisation}
+
+Le \emph{surapprentissage} (\emph{overfitting}) se produit lorsque le réseau modélise trop fidèlement les données d'entraînement, au détriment de sa capacité à généraliser à de nouvelles données. Il se manifeste par un écart croissant entre l'erreur sur les données d'entraînement et l'erreur sur un ensemble de validation \cite{Goodfellow16}.
+
+La \emph{régularisation $L_2$} (ou \emph{weight decay}) pénalise les poids de grande amplitude en ajoutant le terme $\frac{\lambda}{2} \|W\|^2$ à la fonction de coût~(\ref{eq:cout}), ce qui contraint le réseau à préférer des solutions plus simples \cite{Goodfellow16}.
+
+Le \emph{Dropout}, introduit par Srivastava et al. \cite{Srivastava14}, consiste à désactiver aléatoirement une fraction $p$ des neurones à chaque itération d'entraînement. Cette technique force le réseau à apprendre des représentations redondantes, ce qui améliore sa robustesse.
+
+\subsection*{Initialisation des poids}
+
+L'initialisation des poids influence fortement la convergence de l'entraînement. Une initialisation à zéro est inefficace car tous les neurones d'une même couche calculent le même gradient et évoluent de manière identique. L'initialisation de \emph{Glorot} (ou \emph{Xavier}), proposée par Glorot et Bengio \cite{GlorotBengio10}, choisit les poids de façon à préserver la variance des activations d'une couche à l'autre, ce qui stabilise l'entraînement avec des fonctions d'activation symétriques. Pour les réseaux utilisant $\mathrm{ReLU}$, l'initialisation de \emph{He} \cite{He15} adapte ce principe en tenant compte du fait que ReLU annule la moitié des activations en moyenne.
+
+\subsection*{Normalisation par lot}
+
+La \emph{normalisation par lot} (\emph{Batch Normalization}), introduite par Ioffe et Szegedy \cite{BatchNorm15}, normalise les pré-activations $\mathbf{z}^{(l)}$ au sein de chaque mini-lot à chaque étape de l'entraînement, de sorte que leur distribution reste centrée et de variance unitaire. Cette opération réduit la sensibilité à l'initialisation des poids, permet d'utiliser des taux d'apprentissage plus élevés et atténue le problème du gradient évanescent. Elle introduit deux paramètres apprenables par couche, une échelle et un biais, qui lui permettent de restaurer la capacité expressive du réseau si nécessaire.
+
+Maîtrisées conjointement, ces techniques constituent le socle de l'entraînement moderne des réseaux de neurones profonds, dont nous tirons maintenant les principales conclusions.
+
+
+\section{Conclusion et perspectives}
+
+Cet article a présenté les fondements mathématiques des réseaux de neurones multicouches, depuis le neurone formel jusqu'aux méthodes d'entraînement modernes. Nous avons montré que le perceptron, bien que simple, échoue sur les problèmes non linéairement séparables. L'empilement de couches, formalisé par la notation matricielle des équations~(\ref{eq:preactivation}) et~(\ref{eq:activation}), surmonte cette limite et confère aux MLP la capacité d'approximation universelle établie par Cybenko \cite{Cybenko89} et Hornik \cite{Hornik91}. L'algorithme de rétropropagation, décrit par les équations~(\ref{eq:backprop}) et~(\ref{eq:update}), permet d'entraîner ces réseaux efficacement par descente de gradient \cite{Rumelhart86}.
+
+Les MLP présentent cependant des limites importantes. Ils ne tiennent pas compte de la structure des données. Chaque entrée est traitée de manière indépendante, sans notion de voisinage entre les pixels d'une image ou entre les mots d'une phrase. Ces limitations ont motivé le développement de nouvelles architectures. Les \emph{réseaux de neurones convolutifs} (CNN) exploitent la structure locale des images par des opérations de convolution. Les \emph{réseaux récurrents} (RNN) traitent les séquences en maintenant un état caché au fil du temps. Les \emph{Transformers}, fondés sur le mécanisme d'auto-attention, permettent de capturer des dépendances à longue portée dans les données séquentielles et constituent aujourd'hui le socle des grands modèles de langage. Ces architectures avancées s'appuient sur les mêmes principes que ceux présentés ici : propagation avant, rétropropagation, descente de gradient.
+
+Les réseaux de neurones présentent aussi une fragilité que leurs bons résultats ne font pas toujours apparaître. Moosavi-Dezfooli et al.\ \cite{MoosaviDezfooli17} montrent qu'il existe de petites perturbations, imperceptibles à l'œil humain, qui suffisent à tromper ces réseaux sur plus de $85\%$ des images naturelles. Ces perturbations sont les mêmes quelle que soit l'image, ce qui montre que la fragilité vient du réseau lui-même et non des données. Cela rappelle qu'un réseau qui obtient de bons résultats en test n'est pas nécessairement fiable, et que comprendre les mécanismes d'apprentissage reste une question ouverte.
+
+
+{\small
+\bibliographystyle{unsrt}
+\bibliography{mlp-article}
+}
 
 \end{document}
