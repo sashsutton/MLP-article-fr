@@ -31,7 +31,7 @@ Cet article présente ces fondements en détail. Dans un premier temps, nous pr�
 
 \section{Le perceptron : du neurone formel à ses limites}
 
-Un \emph{neurone formel} est l'unité de base d'un réseau de neurones. Il prend en entrée un vecteur $\mathbf{x} = (x_1, x_2, \ldots, x_n) \in \mathbb{R}^n$, associe à chaque entrée $x_i$ un poids $w_i \in \mathbb{R}$, et produit une sortie scalaire. Le calcul se déroule en deux étapes. On calcule d'abord une combinaison linéaire des entrées pondérées à laquelle on ajoute un biais $b \in \mathbb{R}$, puis on applique une fonction d'activation $\sigma$. La sortie $y$ du neurone est
+Un \emph{neurone formel} est l'unité de base d'un réseau de neurones. Il prend en entrée un vecteur $\mathbf{x} = (x_1, x_2, \ldots, x_n) \in \mathbb{R}^n$, associe à chaque entrée $x_i$ un poids $w_i \in \mathbb{R}$, et produit une sortie scalaire. Le calcul se déroule en deux étapes. On calcule d'abord une combinaison linéaire des entrées pondérées à laquelle on ajoute un biais $b \in \mathbb{R}$, puis on applique une fonction d'activation $\sigma$. La sortie $y$ du neurone est :
 \begin{equation*}
     y = \sigma\!\left(\sum_{i=1}^{n} w_i x_i + b\right) = \sigma(\mathbf{w}^\top \mathbf{x} + b)
 \end{equation*}
@@ -41,18 +41,18 @@ où $\mathbf{w} = (w_1, \ldots, w_n)^\top \in \mathbb{R}^n$ est le vecteur des p
 
 La fonction d'activation permet au neurone de produire une sortie non linéaire. Sans elle, le neurone se réduirait à une simple combinaison linéaire de ses entrées, incapable de modéliser des relations complexes \cite{Goodfellow16}. Plusieurs fonctions d'activation sont couramment utilisées.
 \begin{itemize}
-\item La \emph{fonction sigmoïde} $\sigma : \mathbb{R} \to \,]0,1[$ est définie par
+\item La \emph{fonction sigmoïde} $\sigma : \mathbb{R} \to \,]0,1[$ est définie par :
 \begin{equation*}
     \sigma(z) = \frac{1}{1 + e^{-z}}
 \end{equation*}
 
 Elle compresse toute valeur réelle dans l'intervalle $]0,1[$, ce qui la rend interprétable comme une probabilité. Elle souffre cependant du problème de \emph{gradient évanescent} \cite{Goodfellow16}. Pour des valeurs de $z$ très grandes ou très petites, sa dérivée tend vers zéro et l'apprentissage ralentit.
-\item La \emph{tangente hyperbolique} $\tanh : \mathbb{R} \to \,]-1,1[$, définie par
+\item La \emph{tangente hyperbolique} $\tanh : \mathbb{R} \to \,]-1,1[$, définie par :
 \begin{equation*}
     \tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}}
 \end{equation*}
 est centrée en zéro, ce qui accélère la convergence, mais souffre du même problème \cite{Goodfellow16}.
-\item La fonction \emph{ReLU} (\emph{Rectified Linear Unit}), aujourd'hui la plus utilisée dans les architectures profondes, est définie par
+\item La fonction \emph{ReLU} (\emph{Rectified Linear Unit}), aujourd'hui la plus utilisée dans les architectures profondes, est définie par :
 \begin{equation*}
     \mathrm{ReLU}(z) = \max(0, z)
 \end{equation*}
@@ -124,7 +124,7 @@ La Figure~\ref{fig:activation} illustre le comportement de ces trois fonctions.
 
 \subsection*{Le perceptron et sa règle d'apprentissage}
 
-Le \emph{perceptron}, introduit par Rosenblatt \cite{Rosenblatt58}, est le modèle le plus simple. Il s'agit d'un neurone formel unique dont la fonction d'activation est la fonction de seuil de Heaviside
+Le \emph{perceptron}, introduit par Rosenblatt \cite{Rosenblatt58}, est le modèle le plus simple. Il s'agit d'un neurone formel unique dont la fonction d'activation est la fonction de seuil de Heaviside :
 \begin{equation*}
     \sigma(z) = \begin{cases} 1 & \text{si } z \geq 0 \\ 0 & \text{sinon} \end{cases}
 \end{equation*}
@@ -283,7 +283,7 @@ La puissance des MLP repose sur un résultat théorique fondamental. Cybenko \ci
 
 \textbf{Théorème} (Approximation universelle)\textbf{.} \textit{Toute fonction continue $f : [a,b]^n \to \mathbb{R}$ peut être approchée d'aussi près que l'on veut par une fonction $F : [a,b]^n \to \mathbb{R}$ réalisée par un réseau de neurones à une couche cachée.}
 
-Précisons le sens de « approcher d'aussi près que l'on veut » : pour tout $\varepsilon > 0$, il existe un réseau $F$ tel que
+Précisons le sens de « approcher d'aussi près que l'on veut » : pour tout $\varepsilon > 0$, il existe un réseau $F$ tel que :
 \begin{equation*}
   \forall\, \mathbf{x} \in [a,b]^n, \quad |f(\mathbf{x}) - F(\mathbf{x})| < \varepsilon.
 \end{equation*}
@@ -394,7 +394,7 @@ Il généralise la notion de dérivée aux fonctions de plusieurs variables. En 
 
 \subsection*{Descente de gradient}
 
-L'intuition de la descente de gradient est celle d'une goutte d'eau sur une colline qui suit la pente et s'arrête dans un creux \cite{Exo7deepmath}. Pour formaliser cela, on représente l'ensemble des poids du réseau, c'est-à-dire toutes les matrices $W^{(l)}$ et tous les biais $\mathbf{b}^{(l)}$ empilés, par un seul vecteur $\mathbf{w}_k$, où $k = 0, 1, 2, \ldots$ est un \emph{compteur d'itérations} sans lien avec les indices de couches. On part d'un point initial $\mathbf{w}_0$ tiré au hasard, puis on itère la mise à jour
+L'intuition de la descente de gradient est celle d'une goutte d'eau sur une colline qui suit la pente et s'arrête dans un creux \cite{Exo7deepmath}. Pour formaliser cela, on représente l'ensemble des poids du réseau, c'est-à-dire toutes les matrices $W^{(l)}$ et tous les biais $\mathbf{b}^{(l)}$ empilés, par un seul vecteur $\mathbf{w}_k$, où $k = 0, 1, 2, \ldots$ est un \emph{compteur d'itérations} sans lien avec les indices de couches. On part d'un point initial $\mathbf{w}_0$ tiré au hasard, puis on itère la mise à jour :
 \begin{equation}
   \mathbf{w}_{k+1} = \mathbf{w}_k - \eta\, \nabla_{\mathbf{w}} \mathcal{L}(\mathbf{w}_k),
   \label{eq:gdescent}
@@ -403,12 +403,12 @@ où $\eta > 0$ est le \emph{taux d'apprentissage}. Le signe moins traduit le dé
 
 \subsection*{Rétropropagation}
 
-Pour appliquer la règle~(\ref{eq:gdescent}), il faut calculer concrètement $\nabla_{\mathbf{w}} \mathcal{L}$, c'est-à-dire les gradients de $\mathcal{L}$ par rapport aux poids de \emph{chaque} couche. La \emph{rétropropagation} \cite{Rumelhart86} y parvient en appliquant la règle de dérivation en chaîne couche par couche, en remontant de la sortie vers l'entrée. On définit pour chaque couche $l$ le vecteur d'\emph{erreur rétropropagée}
+Pour appliquer la règle~(\ref{eq:gdescent}), il faut calculer concrètement $\nabla_{\mathbf{w}} \mathcal{L}$, c'est-à-dire les gradients de $\mathcal{L}$ par rapport aux poids de \emph{chaque} couche. La \emph{rétropropagation} \cite{Rumelhart86} y parvient en appliquant la règle de dérivation en chaîne couche par couche, en remontant de la sortie vers l'entrée. On définit pour chaque couche $l$ le vecteur d'\emph{erreur rétropropagée} :
 \begin{equation}
   \boldsymbol{\delta}^{(l)} = \nabla_{\mathbf{z}^{(l)}} \mathcal{L},
   \label{eq:delta}
 \end{equation}
-qui mesure la sensibilité de $\mathcal{L}$ aux pré-activations de la couche $l$. À la couche de sortie, la règle de dérivation composée appliquée à la MSE donne directement
+qui mesure la sensibilité de $\mathcal{L}$ aux pré-activations de la couche $l$. À la couche de sortie, la règle de dérivation composée appliquée à la MSE donne directement :
 \begin{equation*}
   \boldsymbol{\delta}^{(L)} = 2\bigl(\mathbf{a}^{(L)} - \mathbf{y}\bigr) \odot \sigma'\!\left(\mathbf{z}^{(L)}\right),
 \end{equation*}
@@ -421,7 +421,7 @@ qui exprime que l'erreur de la couche $l$ est obtenue en rétropropageant l'erre
 
 \subsection*{Mise à jour des poids}
 
-Une fois les $\boldsymbol{\delta}^{(l)}$ calculés pour toutes les couches ($l = L, L-1, \ldots, 1$), la règle de dérivation en chaîne fournit les gradients couche par couche.
+Une fois les $\boldsymbol{\delta}^{(l)}$ calculés pour toutes les couches ($l = L, L-1, \ldots, 1$), la règle de dérivation en chaîne fournit les gradients couche par couche :
 \begin{align}
   \nabla_{W^{(l)}} \mathcal{L} &= \boldsymbol{\delta}^{(l)} \left(\mathbf{a}^{(l-1)}\right)^\top, \\
   \nabla_{\mathbf{b}^{(l)}} \mathcal{L} &= \boldsymbol{\delta}^{(l)}.
